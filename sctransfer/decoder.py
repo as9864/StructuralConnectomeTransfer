@@ -44,7 +44,7 @@ def _reshape_toward_target_hubness(SC, target_cv, blend=1.0):
     to compare across data sources measured in completely different raw
     units (invertebrate synapse counts vs. arbitrary synthetic SC weights) -
     a naive absolute-scale match does not survive that unit mismatch (see
-    docs/ARCHITECTURE.md). Concretely: nodes whose strength should grow
+    docs/methodology_transferability.md). Concretely: nodes whose strength should grow
     become more hub-like, others shrink toward the mean, and each edge is
     rescaled by the geometric mean of its two endpoints' adjustment - i.e.
     this is a hub-strength operationalization of the "rich-club organization

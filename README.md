@@ -66,6 +66,7 @@ sc_transfer/
 │   └── hcp_enigma/                 HCP 집단 평균 캐시 (README만 커밋, HCP 약관 적용)
 ├── docs/
 │   ├── methodology_transferability.md   ★ 현재 방향의 배경·가설·방법·결과
+│   ├── experimental_design.md      ★ 논문 실험 설계 (초안)
 │   ├── hcp_data_guide.md           HCP 데이터 준비 방법과 약관
 │   ├── proposal.md / .docx         원 제안서 (제출 당시 그대로)
 │   ├── paper/DRAFT_abstract_intro_related.md   논문 초안 (원래 프레이밍, 재작성 필요)
