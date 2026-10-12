@@ -33,8 +33,10 @@ from sctransfer.run_worm_fly_scope import giant_component, grow
 
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
 ETAS = [-3.0, -2.0, -1.5, -1.0, -0.5, 0.0]
-ALPHAS = [0.0, 0.5, 1.0, 2.0]
-BETAS = [0.0, 0.5, 1.0, 1.5, 2.0]
+ALPHAS = [0.0, 1.0]  # homophily was never selected on finer grids (alpha = 0 everywhere)
+BETAS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+NULL_RULE = (0.0, 0.0, 0.0)
+D_FLOOR = 0.05  # neurons sharing a position (approximate fly centroids) get a small, finite distance
 
 
 def generate(D, m, eta, alpha, beta, rng):
@@ -71,11 +73,16 @@ def pool(lst):
     return tuple(np.concatenate([s[t] for s in lst]) for t in range(4))
 
 
-def position_lookup():
+def position_lookup(fly_position):
+    """fly_position "soma": cell bodies; "synapse": larval synapse centroids
+    (exact, from CATMAID connectors) and adult synapse centroids approximated
+    from neuropil synapse counts (coords.flywire_synapse_centroids)."""
     pos = {}
     pos.update({("worm", k): v for k, v in coords.worm_positions().items()})
-    pos.update({("larva", k): v for k, v in coords.larva_positions().items()})
-    pos.update({("adult_fly", k): v for k, v in coords.flywire_positions().items()})
+    larva_kind = "synapse" if fly_position == "synapse" else "soma"
+    pos.update({("larva", k): v for k, v in coords.larva_positions(larva_kind).items()})
+    adult = coords.flywire_synapse_centroids() if fly_position == "synapse" else coords.flywire_positions("soma")
+    pos.update({("adult_fly", k): v for k, v in adult.items()})
     return pos
 
 
@@ -84,13 +91,25 @@ def main():
     parser.add_argument("--density", type=float, default=0.04)
     parser.add_argument("--n-samples", type=int, default=10, help="per graph: half fit, half test")
     parser.add_argument("--n-boot", type=int, default=20)
+    parser.add_argument("--fly-position", choices=["soma", "synapse"], default="synapse")
+    parser.add_argument("--reuse", action="store_true",
+                        help="keep energies already saved for this tag and simulate only missing rules "
+                             "(samples are redrawn identically from the same seed)")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     RESULTS_DIR.mkdir(exist_ok=True)
     rng = np.random.default_rng(args.seed)
     m = int(round(args.density * N_NODES * (N_NODES - 1) / 2))
-    pos = position_lookup()
+    pos = position_lookup(args.fly_position)
+    tag = f"{args.fly_position}_d{args.density:g}"
     rules = [(e, a, b) for e in ETAS for a in ALPHAS for b in BETAS]
+    if NULL_RULE not in rules:
+        rules.append(NULL_RULE)  # the ER null every transfer index is measured against
+    energy_path = RESULTS_DIR / f"rule_energy_spatial_{tag}.csv"
+    done = set()
+    if args.reuse and energy_path.exists():
+        old = pd.read_csv(energy_path)
+        done = set(map(tuple, old[["eta", "alpha", "beta"]].drop_duplicates().to_numpy()))
 
     # samples: (target stats, D) per graph
     targets = {}
@@ -112,7 +131,7 @@ def main():
             if A.sum() // 2 < 0.95 * m:
                 continue
             D = squareform(pdist(P[keep]))
-            D = D / D[np.triu_indices(N_NODES, 1)].mean()
+            D = np.maximum(D / D[np.triu_indices(N_NODES, 1)].mean(), D_FLOOR)
             np.fill_diagonal(D, 1.0)
             samples.append({"stats": stats(A, D), "D": D})
         targets[name] = {"group": group, "samples": samples}
@@ -124,13 +143,17 @@ def main():
     for t, (name, tgt) in enumerate(targets.items()):
         for s, smp in enumerate(tgt["samples"]):
             for rule in rules:
+                if rule in done:
+                    continue
                 ms = stats(generate(smp["D"], m, *rule, rng), smp["D"])
                 rows.append({"target": name, "sample": s, "half": "fit" if s < half else "test",
                              "eta": rule[0], "alpha": rule[1], "beta": rule[2],
                              "energy": energy(ms, smp["stats"])})
         print(f"[spatial] simulated all rules on {name} ({t + 1}/{len(targets)})", flush=True)
     E = pd.DataFrame(rows)
-    E.to_csv(RESULTS_DIR / f"rule_energy_spatial_d{args.density:g}.csv", index=False)
+    if done:
+        E = pd.concat([old, E], ignore_index=True)
+    E.to_csv(energy_path, index=False)
 
     rule_cols = ["eta", "alpha", "beta"]
     test = E[E.half == "test"].groupby(["target"] + rule_cols)["energy"].mean()
@@ -156,7 +179,7 @@ def main():
     fit = E[E.half == "fit"]
     best = best_rules(fit)
     T = transfer(best)
-    T.to_csv(RESULTS_DIR / f"rule_transfer_spatial_d{args.density:g}.csv", index=False)
+    T.to_csv(RESULTS_DIR / f"rule_transfer_spatial_{tag}.csv", index=False)
 
     boots = []
     for b in range(args.n_boot):
@@ -169,7 +192,7 @@ def main():
         Tb["boot"] = b
         boots.append(Tb)
     B = pd.concat(boots)
-    B.to_csv(RESULTS_DIR / f"rule_transfer_spatial_boot_d{args.density:g}.csv", index=False)
+    B.to_csv(RESULTS_DIR / f"rule_transfer_spatial_boot_{tag}.csv", index=False)
 
     pd.set_option("display.width", 200)
     print("\n=== Best rule per graph (eta: distance, alpha: homophily, beta: preferential attachment) ===")
@@ -187,7 +210,7 @@ def main():
     with_space = test.groupby(level="target").min()
     print("\nBest test energy without vs with the distance term:")
     print(pd.DataFrame({"eta=0": no_space, "eta free": with_space}).round(3).to_string())
-    print(f"\nSaved results/rule_*_spatial_d{args.density:g}.csv")
+    print(f"\nSaved results/rule_*_spatial_{tag}.csv")
 
 
 if __name__ == "__main__":
