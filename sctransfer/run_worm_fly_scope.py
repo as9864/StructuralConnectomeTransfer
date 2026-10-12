@@ -35,8 +35,9 @@ SEEDS_PER_SAMPLE = [1, 3, 9]
 FLY_MIN_SYNAPSES = 3
 
 
-def flywire_brain():
-    """Sparse directed W over central-brain neurons, plus each neuron's home neuropil."""
+def flywire_brain(return_ids=False):
+    """Sparse directed W over central-brain neurons, plus each neuron's home neuropil
+    (and the FlyWire root ids of the rows, with `return_ids`)."""
     conn = flywire.load_connections()
     nps = flywire.hemisphere_neuropils(conn, "both")
     conn = conn[conn["neuropil"].isin(nps)]
@@ -49,7 +50,7 @@ def flywire_brain():
     j = np.searchsorted(bodies, pairs["post"].to_numpy())
     W = sp.csr_matrix((pairs["w"].to_numpy().astype(float), (i, j)), shape=(len(bodies), len(bodies)))
     labels = home.reindex(bodies).fillna("none").to_numpy()
-    return W, labels
+    return (W, labels, bodies) if return_ids else (W, labels)
 
 
 def grow(adj, n, seeds, rng):

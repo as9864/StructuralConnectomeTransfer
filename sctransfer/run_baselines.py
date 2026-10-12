@@ -37,24 +37,26 @@ N_NODES = 150   # smallest graph (Witvliet L1 brain) has 187 neurons
 DENSITIES = [0.02, 0.04]
 
 
-def graphs():
-    """{name: (group, sparse W)}"""
+def graphs(with_ids=False):
+    """{name: (group, sparse W)}, or (group, W, node ids) with `with_ids`
+    (worm: neuron names, larva: CATMAID skeleton ids, adult: FlyWire root ids)."""
     out = {}
     for k, stage in witvliet.DATASETS.items():
-        out[f"worm_w{k}_{stage}"] = ("worm", sp.csr_matrix(witvliet.load(k)[0]))
-    out["worm_whole_animal"] = ("worm", sp.csr_matrix(celegans_weight_matrix()))
+        Ww, names = witvliet.load(k)
+        out[f"worm_w{k}_{stage}"] = ("worm", sp.csr_matrix(Ww), np.array(names))
+    out["worm_whole_animal"] = ("worm", sp.csr_matrix(celegans_weight_matrix()), None)
 
     Wl, meta = larva.load()
     for side in ("L", "R"):
         keep = np.flatnonzero(meta["hemisphere"].to_numpy() == side)
-        out[f"larva_{side}"] = ("larva", Wl[keep][:, keep])
+        out[f"larva_{side}"] = ("larva", Wl[keep][:, keep], meta.index.to_numpy()[keep])
 
-    Wf, labels = flywire_brain()
+    Wf, labels, bodies = flywire_brain(return_ids=True)
     sides = np.array([flywire.neuropil_side(str(x)) for x in labels])
     for side in ("L", "R"):
         keep = np.flatnonzero(sides == side)
-        out[f"adult_{side}"] = ("adult_fly", Wf[keep][:, keep].tocsr())
-    return out
+        out[f"adult_{side}"] = ("adult_fly", Wf[keep][:, keep].tocsr(), bodies[keep])
+    return out if with_ids else {k: v[:2] for k, v in out.items()}
 
 
 def cohens_d(a, b):
