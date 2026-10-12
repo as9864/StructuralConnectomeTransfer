@@ -14,3 +14,12 @@ Nothing in this folder is committed except this README. `sctransfer/flywire.py` 
 One row per (pre neuron, post neuron, neuropil) with the synapse count. `flywire.py` drops
 unassigned synapses, keeps neuron pairs with at least 5 synapses (FlyWire's recommended
 threshold), and coarse-grains the central brain (optic lobes excluded) to neuropil graphs.
+
+## Synapse table (exact synapse positions)
+
+`raw/flywire_synapses_783.feather` (gitignored, 9.5 GB) from the same Zenodo record:
+<https://zenodo.org/api/records/10676866/files/flywire_synapses_783.feather/content>
+One row per synapse with pre/post root ids, cleft score and pre/post positions in nm.
+`sctransfer/coords.py` (`flywire_exact_synapse_centroids`) streams it, keeps synapses with
+cleft score >= 50, and caches each annotated neuron's synapse centroid in
+`data/coords/raw/flywire_synapse_centroids_exact.csv`.

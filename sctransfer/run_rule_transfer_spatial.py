@@ -35,6 +35,7 @@ RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
 ETAS = [-3.0, -2.0, -1.5, -1.0, -0.5, 0.0]
 ALPHAS = [0.0, 1.0]  # homophily was never selected on finer grids (alpha = 0 everywhere)
 BETAS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+FINE_ETAS = [-2.0, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0]
 NULL_RULE = (0.0, 0.0, 0.0)
 D_FLOOR = 0.05  # neurons sharing a position (approximate fly centroids) get a small, finite distance
 
@@ -79,9 +80,11 @@ def position_lookup(fly_position):
     from neuropil synapse counts (coords.flywire_synapse_centroids)."""
     pos = {}
     pos.update({("worm", k): v for k, v in coords.worm_positions().items()})
-    larva_kind = "synapse" if fly_position == "synapse" else "soma"
+    larva_kind = "soma" if fly_position == "soma" else "synapse"
     pos.update({("larva", k): v for k, v in coords.larva_positions(larva_kind).items()})
-    adult = coords.flywire_synapse_centroids() if fly_position == "synapse" else coords.flywire_positions("soma")
+    adult = {"soma": lambda: coords.flywire_positions("soma"),
+             "synapse": coords.flywire_synapse_centroids,
+             "synapse_exact": coords.flywire_exact_synapse_centroids}[fly_position]()
     pos.update({("adult_fly", k): v for k, v in adult.items()})
     return pos
 
@@ -91,7 +94,9 @@ def main():
     parser.add_argument("--density", type=float, default=0.04)
     parser.add_argument("--n-samples", type=int, default=10, help="per graph: half fit, half test")
     parser.add_argument("--n-boot", type=int, default=20)
-    parser.add_argument("--fly-position", choices=["soma", "synapse"], default="synapse")
+    parser.add_argument("--fly-position", choices=["soma", "synapse", "synapse_exact"], default="synapse",
+                        help="synapse = approximate adult centroids; synapse_exact = from the full synapse table")
+    parser.add_argument("--fine-eta", action="store_true", help="eta in steps of 0.25 (homophily fixed at 0)")
     parser.add_argument("--reuse", action="store_true",
                         help="keep energies already saved for this tag and simulate only missing rules "
                              "(samples are redrawn identically from the same seed)")
@@ -102,7 +107,10 @@ def main():
     m = int(round(args.density * N_NODES * (N_NODES - 1) / 2))
     pos = position_lookup(args.fly_position)
     tag = f"{args.fly_position}_d{args.density:g}"
-    rules = [(e, a, b) for e in ETAS for a in ALPHAS for b in BETAS]
+    etas, alphas = (FINE_ETAS, [0.0]) if args.fine_eta else (ETAS, ALPHAS)
+    if args.fine_eta:
+        tag += "_fine"
+    rules = [(e, a, b) for e in etas for a in alphas for b in BETAS]
     if NULL_RULE not in rules:
         rules.append(NULL_RULE)  # the ER null every transfer index is measured against
     energy_path = RESULTS_DIR / f"rule_energy_spatial_{tag}.csv"

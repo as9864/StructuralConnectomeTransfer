@@ -96,6 +96,65 @@ def flywire_synapse_centroids():
     return {int(r.root_id): (r.x, r.y, r.z) for r in out.itertuples(index=False)}
 
 
+FLYWIRE_SYN_TABLE = ROOT / "flywire" / "raw" / "flywire_synapses_783.feather"
+FLYWIRE_SYN_EXACT = ROOT / "coords" / "raw" / "flywire_synapse_centroids_exact.csv"
+MIN_CLEFT_SCORE = 50
+
+
+def _pick(cols, *must):
+    hits = [c for c in cols if all(m in c.lower() for m in must)]
+    return hits[0] if hits else None
+
+
+def flywire_exact_synapse_centroids(path=FLYWIRE_SYN_TABLE):
+    """Exact synapse centroid per FlyWire neuron from the full v783 synapse
+    table (Zenodo 10676866, ~9.5 GB): mean of the presynaptic locations of its
+    outgoing synapses and the postsynaptic locations of its incoming ones.
+    Streams the Arrow file batch by batch; cached as a CSV in nm."""
+    if FLYWIRE_SYN_EXACT.exists():
+        df = pd.read_csv(FLYWIRE_SYN_EXACT)
+        return {int(r.root_id): (r.x, r.y, r.z) for r in df.itertuples(index=False)}
+    import pyarrow as pa
+    import pyarrow.ipc
+
+    reader = pa.ipc.open_file(pa.memory_map(str(path), "r"))
+    cols = reader.schema.names
+    print(f"[coords] synapse table columns: {cols}, {reader.num_record_batches} batches", flush=True)
+    sides = []
+    for side in ("pre", "post"):
+        root = _pick(cols, side, "root") or _pick(cols, side, "id")
+        xyz = [_pick(cols, side, f"_{a}") or _pick(cols, f"{a}") for a in "xyz"]
+        sides.append((root, xyz))
+    partial = []
+    for b in range(reader.num_record_batches):
+        batch = reader.get_batch(b)
+        for root, xyz in sides:
+            df = batch.select([root, *xyz] + (["cleft_score"] if "cleft_score" in cols else [])).to_pandas()
+            if "cleft_score" in df:  # FlyWire's own threshold for a reliable synapse
+                df = df[df.pop("cleft_score") >= MIN_CLEFT_SCORE]
+            df.columns = ["root_id", "x", "y", "z"]
+            df["n"] = 1
+            partial.append(df.groupby("root_id").sum())
+        if len(partial) >= 64:  # fold periodically to bound memory
+            partial = [pd.concat(partial).groupby(level=0).sum()]
+        if b % 50 == 0:
+            print(f"[coords] synapse batch {b}/{reader.num_record_batches}", flush=True)
+    tot = pd.concat(partial).groupby(level=0).sum()
+    out = pd.DataFrame({"root_id": tot.index, "x": tot.x / tot.n, "y": tot.y / tot.n,
+                        "z": tot.z / tot.n, "n_synapses": tot.n})
+    out = out[out["root_id"].isin(set(flywire_positions("soma")))]  # proofread, annotated neurons only
+    # positions are nm (FlyWire synapse table); check against annotated somata (nm after voxel scaling)
+    ann = flywire_positions("soma")
+    common = [r for r in out["root_id"] if r in ann]
+    ref = np.array([ann[r] for r in common])
+    got = out.set_index("root_id").loc[common, ["x", "y", "z"]].to_numpy()
+    ratio = np.median(ref, axis=0) / np.median(got, axis=0)
+    print(f"[coords] {len(common):,} neurons also annotated; soma/synapse median coordinate ratio "
+          f"{np.round(ratio, 2)} (about 1 = same units)", flush=True)
+    out.to_csv(FLYWIRE_SYN_EXACT, index=False)
+    return {int(r.root_id): (r.x, r.y, r.z) for r in out.itertuples(index=False)}
+
+
 LARVA_SYN_POS = ROOT / "larva" / "raw" / "larva_synapse_centroids.csv"
 
 
