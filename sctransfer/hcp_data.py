@@ -54,11 +54,18 @@ def _sc_from_log(sc_log):
     return sc
 
 
-def load_group_connectome(parcellation="aparc"):
+def load_group_connectome(parcellation="aparc", with_subcortex=False):
     """Group-average HCP (SC, FC, labels) for one parcellation, or None if the
-    files can't be downloaded (offline / host not allowed)."""
+    files can't be downloaded (offline / host not allowed). With
+    `with_subcortex`, the 14 subcortical regions (accumbens, amygdala, caudate,
+    hippocampus, pallidum, putamen, thalamus per side) are appended; FC is then
+    None because ENIGMA's combined FC file naming is inconsistent."""
     suffix = PARCELLATIONS[parcellation]
     try:
+        if with_subcortex:
+            sc_log = np.loadtxt(_fetch(f"strucMatrix_with_sctx{suffix}.csv"), delimiter=",")
+            labels = np.loadtxt(_fetch(f"strucLabels_with_sctx{suffix}.csv"), delimiter=",", dtype=str)
+            return _sc_from_log(sc_log), None, np.atleast_1d(labels)
         sc_log = np.loadtxt(_fetch(f"strucMatrix_ctx{suffix}.csv"), delimiter=",")
         fc = np.loadtxt(_fetch(f"funcMatrix_ctx{suffix}.csv"), delimiter=",")
         labels = np.loadtxt(_fetch(f"strucLabels_ctx{suffix}.csv"), delimiter=",", dtype=str)

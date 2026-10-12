@@ -6,7 +6,7 @@ Cross-species transferability of connectome wiring principles (C. elegans + Dros
 
 - Python 3.12+ (`requirements.txt` pins need it). Run everything from this folder: `python -m sctransfer.<module>`.
 - Main analysis: `python -m sctransfer.run_transfer --human hcp_group` (~4 min; downloads ENIGMA HCP CSVs into `data/hcp_enigma/raw/` on first run). `--density 0.04` for the density-matched sensitivity run.
-- There is no test suite; verify changes by re-running `run_transfer` / `run_pilot` and comparing against the numbers recorded in `docs/methodology_transferability.md`.
+- Unit tests: `python -m unittest discover tests` (sanity checks only). Otherwise verify changes by re-running `run_transfer` / `run_pilot` and comparing against the numbers recorded in `docs/methodology_transferability.md`.
 
 ## Conventions
 
