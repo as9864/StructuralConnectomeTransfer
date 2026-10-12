@@ -6,7 +6,9 @@ the remaining worm-fly gap in clustering and hub structure come from that
 difference in scope? Sample the FlyWire whole central brain (optic lobes
 excluded) with k-seed breadth-first growth: k seeds in k different home
 neuropils each grow n/k neurons, so larger k spans more of the brain. The worm
-is sampled the same way (k seeds anywhere) for n below its size.
+is sampled the same way for n below its size. The larval fly brain (larva.py)
+is a whole nervous system like the worm, so it gives a scope match from the
+data itself; it is sampled with one seed and with random node subsets.
 
 Reports, per (n, density, k), the null-normalized statistics and how many
 distinct neuropils the sample spans.
@@ -22,7 +24,7 @@ import pandas as pd
 import scipy.sparse as sp
 import scipy.sparse.csgraph  # noqa: F401  (registers sp.csgraph)
 
-from sctransfer import flywire
+from sctransfer import flywire, larva
 from sctransfer import normalized as N
 from sctransfer.celegans import build_weight_matrix as celegans_weight_matrix
 
@@ -116,20 +118,26 @@ def main():
     print(f"[scope] FlyWire central brain: {Wf.shape[0]:,} neurons, {Wf.nnz:,} connections (>= {FLY_MIN_SYNAPSES} synapses), "
           f"{len(np.unique(labels))} home neuropils", flush=True)
     Ww = sp.csr_matrix(celegans_weight_matrix())
-    graphs = {"fly_brain": (Wf, labels), "worm": (Ww, None)}
+    Wl, _ = larva.load()
+    print(f"[scope] larval fly brain: {Wl.shape[0]:,} neurons, {Wl.nnz:,} connections", flush=True)
+    graphs = {"fly_brain": (Wf, labels), "larva": (Wl, None), "worm": (Ww, None)}
 
     rows = []
     for name, (W, lab) in graphs.items():
         adj = ((W + W.T) > 0).astype(np.int8).tocsr()
         giant = giant_component(adj)
         for n in SIZES:
-            for k in SEEDS_PER_SAMPLE:
+            for k in SEEDS_PER_SAMPLE + ["random"]:
                 whole = name == "worm" and n >= W.shape[0]
-                if whole and k > 1:
+                if whole and k != 1:
                     continue
+                if name == "larva" and k not in (1, "random"):
+                    continue  # larva: one seed (a whole nervous system needs no stitching) or random
                 for s in range(1 if whole else args.n_samples):
                     if whole:
                         keep = np.arange(W.shape[0])
+                    elif k == "random":
+                        keep = rng.choice(W.shape[0], size=n, replace=False)
                     else:
                         keep = grow(adj, n, pick_seeds(lab, k, rng, giant), rng)
                         if keep is None:
