@@ -6,7 +6,7 @@
 - `[ ]` → 다 읽으면 `[x]`로 바꿔서 진행 상황을 기록하세요
 - **관련 코드** 칸은 그 논문이 저장소의 어느 부분과 이어지는지를 적은 것입니다
 - 요약은 [SUMMARIES.md](SUMMARIES.md)에 있습니다
-- 서지 정보는 기억에 기반해 정리한 것이라 (3.1b절과 제안서 참고문헌은 웹 검색으로 확인함), 인용하기 전에 반드시 원문(DOI/출판사 페이지)으로 저자·연도·저널을 확인하세요. 특히 [확인 필요](#확인-필요-항목) 섹션의 항목은 주의가 필요합니다.
+- 서지 정보는 기억에 기반해 정리한 것이라 (3.1b절, 3.5절과 제안서 참고문헌은 웹 검색으로 확인함), 인용하기 전에 반드시 원문(DOI/출판사 페이지)으로 저자·연도·저널을 확인하세요. 특히 [확인 필요](#확인-필요-항목) 섹션의 항목은 주의가 필요합니다.
 
 ---
 
@@ -82,6 +82,49 @@
 | [ ] | ⭐ Assaf et al. (2020). Conservation of brain connectivity and wiring across the mammalian class. *Nat Neurosci* 23, 805–808 | 같은 측정 방식(확산 MRI)으로 본 종간 보존 — 정량적 보존의 선례 |
 | [ ] | ⭐ Faskowitz et al. (2023). Connectome topology of mammalian brains and its relationship to taxonomy and phylogeny. *Front Neurosci* 16, 1044372 | 계통적 거리와 위상 유사성 — "사다리"의 중간 단계 |
 | [ ] | Puxeddu et al. (2024). Relation of connectome topology to brain volume across 103 mammalian species. *PLoS Biol* 22, e3002489 | 뇌 크기에 따라 위상이 체계적으로 변함 → 정량적 전이가 제한될 근거 |
+
+### 3.5 선충-초파리 비교 (2026-10 방향 축소 후 핵심 절)
+
+인간 대신 **선충과 초파리 두 종 사이의 전이**로 범위를 좁히면서 추가했습니다. 서지 정보는 2026-10-12 웹 검색으로 확인했습니다. 요약은 [SUMMARIES.md](SUMMARIES.md#35-선충-초파리-비교)에 있습니다.
+
+**두 종을 나란히 놓은 기술적 비교**
+
+| 읽음 | 논문 | 관련 코드 |
+| --- | --- | --- |
+| [ ] | ⭐ Lin, A. et al. (2024). Network statistics of the whole-brain connectome of *Drosophila*. *Nature* 634, 153–165 | `run_worm_fly.py` — 선충과 같은 표에 놓은 가장 직접적인 선행 비교. 정규화·크기 맞춤 없이 "조심해서 보라"고만 함 → 우리 기여의 출발점 |
+| [ ] | Pathak, A. et al. (2025). Brain rewiring during development: a comparative analysis of larval and adult *Drosophila melanogaster* connectomes. *Netw Neurosci* 9(4), 1299 `【확인 필요: 저자】` | 같은 종 안의 발달 단계 비교. 유충만 리치클럽을 보임 |
+| [ ] | Kunin, A.B. et al. (2024). Hierarchical communities in the larval *Drosophila* connectome. *PNAS* 121, e2320177121 `【확인 필요: 저자】` | 유충 모듈 구조와 리치클럽 뉴런의 분포 |
+| [ ] | Varshney, L.R. et al. (2011). Structural properties of the *C. elegans* neuronal network. *PLoS Comput Biol* (0절) | 선충 쪽 기준값 |
+| [ ] | Towlson, E.K. et al. (2013). The rich club of the *C. elegans* neuronal connectome. *J Neurosci* (3.2절) | 선충 리치클럽 (Lin 2024는 11개 뉴런, 약 4%로 인용) |
+
+**같은 종 안의 변이 (전이 지수의 상한선)**
+
+| 읽음 | 논문 | 관련 코드 |
+| --- | --- | --- |
+| [ ] | ⭐ Schlegel, P. et al. (2024). Whole-brain annotation and multi-connectome cell typing of *Drosophila*. *Nature* 634, 139–152 | `run_worm_fly.py`의 hemibrain vs FlyWire 비교 — 세포 유형 수와 강한 연결은 안정, 연결 가중치는 개체 안팎에서 꽤 변함. 10 시냅스 이상 또는 입력 1% 이상 연결은 잘 보존 |
+| [ ] | ⭐ Pedigo, B.D., Powell, M., Bridgeford, E.W., Winding, M., Priebe, C.E. & Vogelstein, J.T. (2023). Generative network modeling reveals quantitative definitions of bilateral symmetry exhibited by a whole insect brain connectome. *eLife* 12, e83739 | FlyWire 좌우 반구를 반복 표본으로 쓰는 근거와 주의점 — 좌우도 연결 확률이 통계적으로 다르고, 밀도를 맞추거나 약한 연결을 빼야 "같다"고 할 수 있음 |
+| [ ] | ⭐ Witvliet, D. et al. (2021). Connectomes across development reveal principles of brain maturation. *Nature* 596, 257–261 (3.2절) | 선충 8개체 → 선충 쪽 개체 간 변이. 기본 배치는 같고 시냅스는 개체마다 상당히 다름 |
+| [ ] | Cook, S.J. et al. (2019). Whole-animal connectomes of both *C. elegans* sexes. *Nature* 571, 63–71 (0절) | 수컷·자웅동체 = 선충 쪽 두 번째 반복 |
+| [ ] | Schlegel, P. et al. (2021). Information flow, cell types and stereotypy in a full olfactory connectome. *eLife* 10, e66018 | hemibrain 안에서 좌우 정형성을 처음 정량화 |
+
+**종 간 "전이"에 가장 가까운 연구**
+
+| 읽음 | 논문 | 관련 코드 |
+| --- | --- | --- |
+| [ ] | ⭐ Cook, S.J., Kalinski, C.A., Loer, C.M. et al. (2025). Comparative connectomics of two distantly related nematode species reveals patterns of nervous system evolution. *Science*. doi:10.1126/science.adx2143 | 선충 두 종(*C. elegans* vs *P. pacificus*)의 상동 뉴런 연결 비교. 보존된 핵심 커넥톰과 "circuit drift". **같은 문(門) 안의 종 간 비교**라 우리 사다리의 중간 단계 후보 |
+| [ ] | ⭐ Richter, O. & Schneidman, E. (2025). Building the connectome of a small brain with a simple stochastic developmental generative model. *PNAS* 122(47), e2504913122 (정정 공지 있음) | 생성 모델 단계(E-gen)의 가장 가까운 선행 연구 — 선충 한 개체에서 배운 규칙이 다른 개체를 예측. 다른 종 적용은 제안만 함 |
+| [ ] | Kovács, I.A., Barabási, D.L. & Barabási, A.-L. (2020). Uncovering the genetic blueprint of the *C. elegans* nervous system. *PNAS* 117, 33570–33577 | 유전자 발현 규칙으로 연결을 설명하는 선충 모델 |
+| [ ] | Pedigo et al. (2023) (위) | 같은 생성 모델(ER, SBM)로 두 네트워크가 "같은가"를 검정하는 틀 → 종 간 비교에도 그대로 적용 가능 |
+| [ ] | Barsotti, E., Correia, A. & Cardona, A. (2021). Neural architectures in the light of comparative connectomics. *Curr Opin Neurobiol* 71, 139–149 `【확인 필요: 서지】` | 종 간 비교에는 노드 정합이 필요하다는 리뷰 |
+| [ ] | Bénichou, A., Masson, J.-B. & Vestergaard, C.L. (2024). Compression-based inference of network motif sets. *PLoS Comput Biol* doi:10.1371/journal.pcbi.1012460 | 선충, 초파리, 멍게, 갯지렁이 커넥톰의 모티프를 널 모델 선택 없이 비교 |
+
+**생성 모델 (공간 + 이웃 유사성 규칙)**
+
+| 읽음 | 논문 | 관련 코드 |
+| --- | --- | --- |
+| [ ] | Betzel et al. (2016), Akarca et al. (2021) (3.3절) | 인간 거시 커넥톰의 공간+homophily 생성 모델 |
+| [ ] | Akarca, D. et al. (2023). Homophilic wiring principles underpin neuronal network topology in vitro. *eLife* 12, e85300 `【확인 필요: 저자】` | 뉴런 수준에서도 homophily 규칙이 공간 규칙보다 잘 맞음 → 선충·초파리에 적용할 근거 |
+| [ ] | "Coming up short: Generative network models fail to accurately capture long-range connectivity" (2025). *Netw Neurosci* 9(4), 1377. doi:10.1162/NETN.a.35 `【확인 필요: 저자】` | 생성 모델의 한계, 평가 지표 선택 주의 |
 
 ### 3.3 그래프 생성모델 (사전분포 학습)
 

@@ -99,3 +99,29 @@ def hemisphere_neuropils(conn, side, include_optic=False, min_synapses=1_000):
             continue
         out.append(p)
     return sorted(out)
+
+
+# Same circuits as hemibrain.CIRCUITS, in FlyWire neuropil names. Paired
+# neuropils give one graph per hemisphere; the central complex is unpaired.
+CIRCUITS = {
+    "mushroom_body": ["MB_CA", "MB_PED", "MB_VL", "MB_ML"],
+    "lateral_horn": ["LH"],
+    "antennal_lobe": ["AL"],
+    "lateral_complex": ["LAL", "CRE"],
+    "central_complex": ["FB", "EB", "PB", "NO"],
+}
+UNPAIRED = {"central_complex"}
+
+
+def circuit_graph(conn, circuit, side, min_synapses=MIN_SYNAPSES):
+    """Directed neuron-level adjacency W[pre, post] = synapses inside the
+    circuit's neuropils (one hemisphere for paired neuropils), keeping neuron
+    pairs with >= min_synapses there - as hemibrain.build does for the hemibrain."""
+    nps = CIRCUITS[circuit] if circuit in UNPAIRED else [f"{p}_{side}" for p in CIRCUITS[circuit]]
+    sub = conn[conn["neuropil"].isin(nps)]
+    pairs = sub.groupby(["pre", "post"], observed=True)["w"].sum().reset_index()
+    pairs = pairs[pairs["w"] >= min_synapses]
+    bodies = np.unique(np.concatenate([pairs["pre"].to_numpy(), pairs["post"].to_numpy()]))
+    W = np.zeros((len(bodies), len(bodies)))
+    W[np.searchsorted(bodies, pairs["pre"]), np.searchsorted(bodies, pairs["post"])] = pairs["w"]
+    return W
