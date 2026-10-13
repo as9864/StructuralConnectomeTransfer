@@ -94,6 +94,8 @@ def main():
     parser.add_argument("--density", type=float, default=0.04)
     parser.add_argument("--n-samples", type=int, default=10, help="per graph: half fit, half test")
     parser.add_argument("--n-boot", type=int, default=20)
+    parser.add_argument("--n-reps", type=int, default=1,
+                        help="model graphs per rule and sample; energy = their mean (removes simulation noise)")
     parser.add_argument("--fly-position", choices=["soma", "synapse", "synapse_exact"], default="synapse",
                         help="synapse = approximate adult centroids; synapse_exact = from the full synapse table")
     parser.add_argument("--fine-eta", action="store_true", help="eta in steps of 0.25 (homophily fixed at 0)")
@@ -110,6 +112,8 @@ def main():
     etas, alphas = (FINE_ETAS, [0.0]) if args.fine_eta else (ETAS, ALPHAS)
     if args.fine_eta:
         tag += "_fine"
+    if args.n_reps > 1:
+        tag += f"_r{args.n_reps}"
     rules = [(e, a, b) for e in etas for a in alphas for b in BETAS]
     if NULL_RULE not in rules:
         rules.append(NULL_RULE)  # the ER null every transfer index is measured against
@@ -153,10 +157,11 @@ def main():
             for rule in rules:
                 if rule in done:
                     continue
-                ms = stats(generate(smp["D"], m, *rule, rng), smp["D"])
+                e_reps = [energy(stats(generate(smp["D"], m, *rule, rng), smp["D"]), smp["stats"])
+                          for _ in range(args.n_reps)]
                 rows.append({"target": name, "sample": s, "half": "fit" if s < half else "test",
                              "eta": rule[0], "alpha": rule[1], "beta": rule[2],
-                             "energy": energy(ms, smp["stats"])})
+                             "energy": float(np.mean(e_reps))})
         print(f"[spatial] simulated all rules on {name} ({t + 1}/{len(targets)})", flush=True)
     E = pd.DataFrame(rows)
     if done:
