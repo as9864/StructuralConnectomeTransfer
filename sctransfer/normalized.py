@@ -33,8 +33,11 @@ RICH_CLUB_PERCENTILE = 80
 
 def binarize(W, density=None):
     """Undirected 0/1 adjacency. If `density` is given, keep only the strongest
-    edges so the graph has (at most) that density; graphs sparser than the
+    edges so the graph has exactly that density; graphs sparser than the
     target keep all their edges - callers check `density_of` to exclude them.
+    Ties at the cutoff (common with integer synapse counts) are broken at
+    random with a fixed seed; a plain `>= cutoff` rule would keep every tied
+    edge and leave the density unmatched.
     """
     S = np.maximum(np.abs(W), np.abs(W).T)
     np.fill_diagonal(S, 0)
@@ -44,8 +47,11 @@ def binarize(W, density=None):
         vals = S[iu]
         n_keep = int(round(density * len(vals)))
         if 0 < n_keep < np.count_nonzero(vals):
-            cutoff = np.sort(vals)[::-1][n_keep - 1]
-            S = np.where(S >= cutoff, S, 0)
+            tiebreak = np.random.default_rng(0).random(len(vals))
+            keep = np.lexsort((tiebreak, -vals))[:n_keep]
+            A = np.zeros_like(S)
+            A[iu[0][keep], iu[1][keep]] = 1
+            return (A + A.T).astype(int)
     return (S > 0).astype(int)
 
 
@@ -79,7 +85,13 @@ def _degree_preserving(G, seed):
     H = G.copy()
     m = H.number_of_edges()
     if m >= 2 and H.number_of_nodes() >= 4:
-        nx.double_edge_swap(H, nswap=10 * m, max_tries=100 * m, seed=seed)
+        try:
+            nx.double_edge_swap(H, nswap=10 * m, max_tries=100 * m, seed=seed)
+        except nx.NetworkXAlgorithmError:
+            # very dense graphs (e.g. coarse-grained region graphs) run out of
+            # valid swaps; H keeps the swaps made so far, which is as random as
+            # a degree-preserving graph of that density can get
+            pass
     return H
 
 

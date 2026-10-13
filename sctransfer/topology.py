@@ -4,7 +4,7 @@ Every function here operates on a plain weighted adjacency matrix (numpy array,
 square, zero diagonal) and returns either a scalar or a small dict of scalars.
 We deliberately stay at the *graph* level (never touch individual node identity)
 because C. elegans/fly neurons and human macro-scale ROIs have no natural
-correspondence - see docs/ARCHITECTURE.md for why that rules out node-level
+correspondence - see docs/proposal.md section 4.5 for why that rules out node-level
 transfer.
 """
 import networkx as nx
